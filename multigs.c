@@ -74,6 +74,9 @@ multigs_new(int hypo_size, int init_size) {
         gs->indexes = 0;
         gs->ranks = 0;
         gs->unions = 0;
+
+        // feed the rand seed
+        srand((unsigned)time(NULL));
         
         return gs;
 }
@@ -89,7 +92,7 @@ multigs_free(struct multigs_t *gs) {
 }
 
 /* allocate the memory that related to the size of correspondence */
-static void multigs_alloc(struct multigs_t *gs);
+static void multigs_alloc(struct multigs_t *gs, int n);
 static void multigs_get_fxy(const struct multigs_t *gs, int unions_ri, double *fxy);
 static void multigs_update_fxy(const struct multigs_t *gs, int unions_ri, double *fxy);
 
@@ -286,6 +289,30 @@ irmat_free(struct irmat_t *ir) {
         }
 }
 
+/*
+  struct imat_t *indexes;
+  struct imat_t *unions; 
+  struct irmat_t *ranks;
+ */
+static void
+multigs_alloc(struct multigs_t *gs, int n) {
+        if (gs->unions) { // unions is a n x n integer matrix
+                if (gs->unions->rows != n) {
+                        imat_free(gs->unions);
+                        gs->unions = imat_new(n, n);
+                        DASSERT(gs->unions);
+                }
+        }
+
+        if (gs->ranks) {
+                if (gs->ranks->rows != n ) {
+                        irmat_free(gs->ranks);
+                        gs->ranks = irmat_new(n, gs->hypo_size);
+                        DASSERT(gs->ranks);
+                }
+        }
+}
+
 /* Get the residuls of elements ri from unions, store into fxy. 
  */
 static void
@@ -330,11 +357,53 @@ irmat_sort_by_r(struct irmat_t *irm) {
         }
 }
 
+/* Find the first position when arr[pos] >= key */
+static __inline int
+_bfind(const struct irmat_elem_t *arr, const int size, const double r) {
+        register int start = 0, end = size - 1, pos = -1;
+        
+        if (r >= arr[0].r) {
+                return 0;
+        }
+        else if (r < arr[end]) {
+                return size - 1;
+        }
+ 
+        while (start <= end && pos == -1) {
+                const int mid = start + ((end - end)>> 1);
+ 
+                if (r > arr[mid].r) {
+                        end = mid - 1;
+                }
+                else if (r < arr[mid].r) {
+                        start = mid + 1;
+                }
+                else {
+                        return mid;
+                }
+        }
+        return end;
+}
+
 /* Try to insert the element into the irmat row.
  * Return -1 if not inserted, else return the id of the removed element.
  */
 static int
 irmat_row_insert(struct irmat_t *irm, int rowi, const struct irmat_elem_t ire) {
+        struct irmat_elem_t *prow = &irmat_at(irm, rowi, 0);
+        const int cols = irm->cols;
+        
+        if (ire.r >= prow[0]) {
+                return -1;
+        }
+        else {
+                const int id = prow[0].i;
+                const int pos = _bfind(prow + 1, cols-1, ire.r);
+                memmove(prow, prow + 1, sizeof(prow[0]) * pos);
+                prow[pos] = ire;
+                return id;
+        }
+        DASSERT(0); // impossible!!
         return -1;
 }
 
@@ -342,6 +411,20 @@ irmat_row_insert(struct irmat_t *irm, int rowi, const struct irmat_elem_t ire) {
  * Return -1 if not in, else return the position (>=0)
  */
 static int
-irmat_row_find(const struct irmat_t *irm, int rowi, int id) {
+irmat_row_find(const struct irmat_t *irm, int rowi, int i) {
+        const struct irmat_elem_t *prow = &irmat_at(irm, rowi, 0);
+        int start = 0, end = irm->cols - 1;
+        for (;start <= end;) {
+                const int mid = start + ((end - start) >> 1);
+                if (i > prow[mid].i) {
+                        end = mid - 1;
+                }
+                else if (i < prow[mid]) {
+                        start = mid + 1;
+                }
+                else {
+                        return mid;
+                }
+        }
         return -1;
 }
