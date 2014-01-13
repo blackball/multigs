@@ -29,6 +29,7 @@ struct irmat_t {
 #define irmat_at(irm, i, j) ((irm)->data[ (irm)->cols * (i) + j])
 static struct irmat_t * irmat_new();
 static void irmat_free(struct irmat_t *irm);
+static void irmat_sort_by_r(struct irmat_t *irm);
 static int irmat_row_insert(struct irmat_t *irm, int rowi, const struct irmat_elem_t ire);
 static int irmat_row_find(const struct irmat_t *irm, int rowi, int id);
 
@@ -158,7 +159,7 @@ multigs_sampling(struct multigs_t *gs, const struct point_t *ps0, const struct p
         // the initial value of intersection
         imat_set_all(gs->unions, init_size);
         // sort all rows
-        irmat_sort(gs->ranks);
+        irmat_sort_by_r(gs->ranks);
         
         
         for (; hypo_i < hypo_size;) {
@@ -306,6 +307,26 @@ multigs_update_fxy(const struct multigs_t *gs, int unions_ri, double *fxy) {
         int i = 0;
         for (; i < gs->cols; ++i) {
                 fxy[i] *= imat_at(gs->unions, unions_ri, i) * inv_init;
+        }
+}
+
+static __inline int
+irmat_elem_cmp(const void *a, const void *b) {
+        const struct irmat_elem_t *ia = a, *ib = b;
+        if (ia->r < ib->r) {
+                return 1;
+        }
+        else if (ia->r > ib->r) {
+                return -1;
+        }
+        return 0;
+}
+
+static void
+irmat_sort_by_r(struct irmat_t *irm) {
+        int i = 0;
+        for (; i < irm->rows; ++i) {
+                qsort(&irmat_at(irm, i, 0), irm->cols, sizeof(irm->data[0]), irmat_elem_cmp);
         }
 }
 
