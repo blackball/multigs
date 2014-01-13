@@ -1,6 +1,7 @@
 #ifndef MULTIGS_MODEL_H
 #define MULTIGS_MODEL_H
 
+#define MODEL_NEED_NORMALIZE 0
 #define MODEL_TYPE_HOMO 0
 #define MODEL_TYPE_FUND 1
 

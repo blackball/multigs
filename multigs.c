@@ -11,6 +11,10 @@ struct imat_t {
 };
 
 #define imat_at(im, i, j) ((im)->data[(i) * (im)->cols + j])
+static struct imat_t * imat_new(int rows, int cols);
+static void imat_free(struct imat_t *im);
+static void imat_set_all(struct imat_t *im, int value);
+static void imat_set_row(struct imat_t *im, int rowi, const int *row, int n);
 
 struct irmat_elem_t {
         int i;
@@ -23,6 +27,10 @@ struct irmat_t {
 };
 
 #define irmat_at(irm, i, j) ((irm)->data[ (irm)->cols * (i) + j])
+static struct irmat_t * irmat_new();
+static void irmat_free(struct irmat_t *irm);
+static int irmat_row_insert(struct irmat_t *irm, int rowi, const struct irmat_elem_t ire);
+static int irmat_row_find(const struct irmat_t *irm, int rowi, int id);
 
 struct multigs_t {
         int hypo_size;
@@ -81,6 +89,8 @@ multigs_free(struct multigs_t *gs) {
 
 /* allocate the memory that related to the size of correspondence */
 static void multigs_alloc(struct multigs_t *gs);
+static void multigs_get_fxy(const struct multigs_t *gs, int unions_ri, double *fxy);
+static void multigs_update_fxy(const struct multigs_t *gs, int unions_ri, double *fxy);
 
 /* First uniform randomly select init_size models, 
  * Then, *conditionly select* next all models.
@@ -182,7 +192,7 @@ multigs_sampling(struct multigs_t *gs, const struct point_t *ps0, const struct p
                 model_res(gs->model, ps0, ps1, n, fxy);
                 for (i = 0; i < n; ++i) {
                         const struct irmat_elem_t ire = {hypo_i, fxy[i]};
-                        // insert ire, if not insert return -1, else return the id of removed element
+                        // if not insert return -1, else return the id of removed element
                         const int id = irmat_row_insert(gs->ranks, hypo_i, ire);
                         if (id >= 0) {
                                 // update unions table
@@ -193,7 +203,6 @@ multigs_sampling(struct multigs_t *gs, const struct point_t *ps0, const struct p
                                         }
                                 }
                         }
-                        irmat_at(gs->ranks, i, hypo_i) = ire;
                 }
 
                 // add selected samples 
