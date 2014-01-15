@@ -48,8 +48,6 @@ model_fit(struct model_t *model, const struct point_t *ps0, const struct point_t
 #if MODEL_NEED_NORMALIZE == 1
                 norm_get_condition(ps0, n, T0);
                 norm_get_condition(ps1, n, T1);
-                norm_transform(x, ps0, nps0, 4);
-                norm_transform(x, ps1, nps1, 4);
 #else
                 nps0[0] = ps0[0];
                 nps0[1] = ps0[1];
@@ -60,12 +58,18 @@ model_fit(struct model_t *model, const struct point_t *ps0, const struct point_t
                 nps1[2] = ps1[2];
                 nps1[3] = ps1[3];
 #endif
-                return homo_fit(nps0, nps1, n, model->svdata89, model->H);
+                if (0!= homo_fit(nps0, nps1, n, model->svdata89, model->H)) {
+                        return -1;
+                }
+
+#if MODEL_NEED_NORMALIZE == 1
+                norm_decondition(T0, T1, model->H);
+#endif
         }
         /* add others here */
         else {
                 DASSERT(0);
-                return 1;
+                return -1;
         }
         return 0;
 }
