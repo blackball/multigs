@@ -289,11 +289,7 @@ irmat_free(struct irmat_t *ir) {
         }
 }
 
-/*
-  struct imat_t *indexes;
-  struct imat_t *unions; 
-  struct irmat_t *ranks;
- */
+/* allocate the sample size dependent buffers */
 static void
 multigs_alloc(struct multigs_t *gs, int n) {
         if (gs->unions) { // unions is a n x n integer matrix
