@@ -11,7 +11,7 @@
 */
 
 static void
-norm_get_condition(struct point_t *pts, int n, double T[3]) {
+norm_get_condition(const struct point_t *pts, int n, double T[3]) {
         double mx = 0, my = 0, ms = 0;
         int i = 0;
         for (; i < n; ++i) {
@@ -38,12 +38,12 @@ norm_get_condition(struct point_t *pts, int n, double T[3]) {
 }
 
 static void
-norm_transform(const double T[3], struct point_t *pts, int n) {
+norm_transform(const double T[3], const struct point_t *src, struct point_t *dst, int n) {
         const double x = T[0], y = T[1], s = T[2];
         int i = 0;
         for (; i < n; ++i) {
-                pts[i].x[0] = s * (pts[i].x[0] - x);
-                pts[i].x[1] = s * (pts[i].x[0] - y);
+                dst[i].x[0] = s * (src[i].x[0] - x);
+                dst[i].x[1] = s * (src[i].x[1] - y);
         }
 }
 
